@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FeedbackHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div class="nav-brand">🌟 FeedbackHub</div>
+            <div class="nav-links">
+                <span id="welcomeUser">Welcome!</span>
+                <a href="all-feedbacks.html" class="btn btn-secondary">View All</a>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+        
+        <div class="feedback-form">
+            <div class="card fade-in">
+                <h2 class="text-center">Share Your Feedback</h2>
+                <p class="text-center mb-20">We value your opinion and would love to hear from you!</p>
+                
+                <div id="alert" class="alert" style="display: none;"></div>
+                
+                <form id="feedbackForm">
+                    <div class="form-group text-center">
+                        <label>How would you rate your experience?</label>
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <input type="hidden" id="rating" name="rating" value="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comment">Your Feedback</label>
+                        <textarea id="comment" name="comment" class="form-control" rows="5" 
+                                placeholder="Tell us about your experience..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Submit Feedback</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const result = await response.json();
+                
+                if (!result.authenticated) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                
+                document.getElementById('welcomeUser').textContent = `Welcome, ${result.username}!`;
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Star rating functionality
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('rating');
+        let currentRating = 0;
+
+        stars.forEach(star => {
+            star.addEventListener('mouseover', () => {
+                const rating = parseInt(star.dataset.rating);
+                highlightStars(rating);
+            });
+
+            star.addEventListener('mouseout', () => {
+                highlightStars(currentRating);
+            });
+
+            star.addEventListener('click', () => {
+                currentRating = parseInt(star.dataset.rating);
+                ratingInput.value = currentRating;
+                highlightStars(currentRating);
+            });
+        });
+
+        function highlightStars(rating) {
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        // Feedback form submission
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (currentRating === 0) {
+                showAlert('Please select a rating', 'error');
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            data.rating = currentRating;
+            
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    document.getElementById('feedbackForm').reset();
+                    currentRating = 0;
+                    highlightStars(0);
+                    ratingInput.value = 0;
+                } else {
+                    showAlert(result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please try again.', 'error');
+            }
+        });
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/';
+            }
+        });
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Feedbacks - FeedbackHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div class="nav-brand">🌟 FeedbackHub</div>
+            <div class="nav-links">
+                <a href="/" class="btn btn-secondary">Home</a>
+                <a href="dashboard.html" class="btn btn-secondary">Dashboard</a>
+            </div>
+        </nav>
+        
+        <div class="header text-center">
+            <h1>Customer Feedbacks</h1>
+            <p>See what our users are saying about their experiences</p>
+        </div>
+        
+        <div class="loading" id="loading">Loading feedbacks...</div>
+        
+        <div id="feedbacksContainer" class="feedback-grid">
+            <!-- Feedbacks will be loaded here -->
+        </div>
+        
+        <div id="noFeedbacks" class="card text-center" style="display: none;">
+            <h3>No Feedbacks Yet</h3>
+            <p>Be the first to share your experience!</p>
+            <a href="signup.html" class="btn btn-primary">Get Started</a>
+        </div>
+    </div>
+
+    <script>
+        async function loadFeedbacks() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('feedbacksContainer');
+            const noFeedbacks = document.getElementById('noFeedbacks');
+            
+            loading.classList.add('show');
+            
+            try {
+                const response = await fetch('/api/feedbacks');
+                const feedbacks = await response.json();
+                
+                loading.classList.remove('show');
+                
+                if (feedbacks.length === 0) {
+                    noFeedbacks.style.display = 'block';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                feedbacks.forEach(feedback => {
+                    const feedbackCard = createFeedbackCard(feedback);
+                    container.appendChild(feedbackCard);
+                });
+                
+            } catch (error) {
+                loading.classList.remove('show');
+                container.innerHTML = '<div class="card text-center"><h3>Error loading feedbacks</h3><p>Please try again later.</p></div>';
+            }
+        }
+
+        function createFeedbackCard(feedback) {
+            const card = document.createElement('div');
+            card.className = 'feedback-card fade-in';
+            
+            const stars = '★'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
+            const date = new Date(feedback.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            card.innerHTML = `
+                <div class="feedback-header">
+                    <div class="feedback-user">${feedback.username}</div>
+                    <div class="feedback-date">${date}</div>
+                </div>
+                <div class="feedback-rating">
+                    ${stars.split('').map(star => `<span class="star">${star}</span>`).join('')}
+                </div>
+                <div class="feedback-comment">${feedback.comment}</div>
+            `;
+            
+            return card;
+        }
+
+        // Load feedbacks when page loads
+        loadFeedbacks();
+    </script>
+</body>
+</html>
